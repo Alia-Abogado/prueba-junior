@@ -1,0 +1,55 @@
+# Agent OS Standards Index
+
+backend:
+  api:
+    description: Server functions vs API routes — when to use each, with preferred defaults
+  migrations:
+    description: Reversible migrations, zero-downtime, naming conventions
+  models:
+    description: Naming, timestamps, constraints, validation, relationships
+  mutations:
+    description: Router invalidation after server-side mutations
+  queries:
+    description: SQL injection prevention, N+1 avoidance, indexing, caching
+  server-functions:
+    description: createServerFn chaining pattern — inputValidator and handler
+
+frontend:
+  accessibility:
+    description: Semantic HTML, keyboard nav, ARIA, focus management
+  components:
+    description: Functional React components with Tailwind, props interfaces, naming
+  css:
+    description: Migrating to Tailwind CSS — new code uses utilities, no new CSS files
+  data-fetching:
+    description: Decision tree for data fetching — SPA vs SSR vs loaders vs fetch
+  responsive:
+    description: Mobile-first, breakpoints, fluid layouts, touch-friendly
+  root-shell:
+    description: Root layout shell, CSS URL imports with ?url, HeadContent/Scripts
+  route-tree:
+    description: Auto-generated routeTree.gen.ts — read-only, rebuild for updates
+  routing:
+    description: File-based routing with dot notation for nested paths
+  ssr-modes:
+    description: Three SSR modes (true, data-only, false) — default to SPA
+
+global:
+  coding-style:
+    description: Naming conventions, formatting, small functions, DRY
+  commenting:
+    description: Self-documenting code, minimal helpful comments
+  conventions:
+    description: ES modules only, Nitro nightly, file organization, naming conventions
+  error-handling:
+    description: User-friendly errors, fail-fast, centralized handling, retry strategies
+  path-aliases:
+    description: "@/*" alias synced in tsconfig.json and vite.config.ts
+  tech-stack:
+    description: TanStack Start, React 19, Tailwind, Vite 7, Nitro nightly, Vitest
+  validation:
+    description: Server-side validation, fail-early, specific error messages
+
+testing:
+  test-writing:
+    description: Minimal testing, core user flows, behavior over implementation
