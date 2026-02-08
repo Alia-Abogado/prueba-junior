@@ -23,6 +23,7 @@
     "@tanstack/react-router-ssr-query": "^1.131.7",
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
+    "@tavily/core": "^0.7.1",
     "@xyflow/react": "^12.10.0",
     "ai": "^6.0.70",
     "ansi-to-react": "^6.2.6",
