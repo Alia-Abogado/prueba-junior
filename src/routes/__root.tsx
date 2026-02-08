@@ -6,6 +6,8 @@ import Header from '../components/Header'
 
 import appCss from '../styles.css?url'
 
+import { NotFound } from '@/components/NotFound'
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -29,6 +31,7 @@ export const Route = createRootRoute({
   }),
 
   shellComponent: RootDocument,
+  notFoundComponent: NotFound,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
