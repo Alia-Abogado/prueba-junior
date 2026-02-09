@@ -7,7 +7,7 @@ import Header from '../components/Header'
 import appCss from '../styles.css?url'
 
 import { NotFound } from '@/components/NotFound'
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from '@/providers/ThemeProvider'
 
 export const Route = createRootRoute({
   head: () => ({
