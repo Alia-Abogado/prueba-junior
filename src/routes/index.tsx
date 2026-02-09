@@ -30,12 +30,16 @@ import {
 import { Suggestions, Suggestion } from '@/components/ai-elements/suggestion'
 import { Shimmer } from '@/components/ai-elements/shimmer'
 import { CopyIcon, RefreshCwIcon, ScaleIcon } from 'lucide-react'
-
-// TODO: Import Tool components for displaying web search results
-// import { Tool, ToolHeader, ToolContent, ToolInput, ToolOutput } from '@/components/ai-elements/tool'
-
-// TODO: Import Plan components for displaying the agent's plan
-// import { Plan, PlanHeader, PlanTitle, PlanContent, PlanTrigger } from '@/components/ai-elements/plan'
+import {
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolInput,
+  ToolOutput,
+  ToolSearchQuery,
+  ToolSearchResults,
+} from '@/components/ai-elements/tool'
+import { Plan, PlanHeader, PlanTitle, PlanContent, PlanTrigger } from '@/components/ai-elements/plan'
 
 export const Route = createFileRoute('/')({
   component: ChatPage,
@@ -68,20 +72,20 @@ function ChatPage() {
                   <ScaleIcon className="mx-auto size-8 text-muted-foreground" />
                   <h3 className="font-medium text-sm">Asistente Legal Mexicano</h3>
                   <p className="text-muted-foreground text-sm">
-                    Pregunta sobre leyes, tramites y procedimientos legales en Mexico.
+                    Pregunta sobre leyes, trámites y procedimientos legales en México.
                   </p>
                 </div>
                 <Suggestions>
                   <Suggestion
-                    suggestion="¿Cuales son mis derechos como inquilino en Mexico?"
+                    suggestion="¿Cuáles son mis derechos como inquilino en México?"
                     onClick={(s) => setInput(s)}
                   />
                   <Suggestion
-                    suggestion="¿Como es el proceso de divorcio en Mexico?"
+                    suggestion="¿Cómo es el proceso de divorcio en México?"
                     onClick={(s) => setInput(s)}
                   />
                   <Suggestion
-                    suggestion="¿Que dice la Ley Federal del Trabajo sobre el despido injustificado?"
+                    suggestion="¿Qué dice la Ley Federal del Trabajo sobre el despido injustificado?"
                     onClick={(s) => setInput(s)}
                   />
                 </Suggestions>
@@ -107,10 +111,11 @@ function ChatPage() {
                   }
 
                   if (part.type === 'text') {
-                    if (message.role === 'user') {
+                    const hasToolPart = message.parts.some((p) => p.type.startsWith('tool-'))
+                    if (hasToolPart) {
                       return (
                         <MessageContent key={`text-${i}`}>
-                          {part.text}
+                          <MessageResponse>{part.text}</MessageResponse>
                         </MessageContent>
                       )
                     }
@@ -121,33 +126,100 @@ function ChatPage() {
                     )
                   }
 
-                  // TODO: Handle tool call parts
-                  // Tool parts have type 'tool-{toolName}' (e.g., 'tool-plan', 'tool-web_search')
-                  // Each tool part has: part.toolCallId, part.input, part.output, part.state
-                  //
-                  // For 'tool-plan': Render using Plan, PlanHeader, PlanTitle, PlanContent
-                  //   - part.input.plan contains the markdown plan text
-                  //   - Example:
-                  //     <Plan key={part.toolCallId}>
-                  //       <PlanTrigger>
-                  //         <PlanHeader><PlanTitle>Plan</PlanTitle></PlanHeader>
-                  //       </PlanTrigger>
-                  //       <PlanContent>{part.input.plan}</PlanContent>
-                  //     </Plan>
-                  //
-                  // For 'tool-web_search': Render using Tool, ToolHeader, ToolContent, ToolInput, ToolOutput
-                  //   - part.input.query contains the search query
-                  //   - part.output contains the search results (when part.state === 'result')
-                  //   - Example:
-                  //     <Tool key={part.toolCallId} name="web_search">
-                  //       <ToolHeader>Buscando en la web...</ToolHeader>
-                  //       <ToolContent>
-                  //         <ToolInput>{JSON.stringify(part.input)}</ToolInput>
-                  //         {part.state === 'result' && <ToolOutput>{JSON.stringify(part.output)}</ToolOutput>}
-                  //       </ToolContent>
-                  //     </Tool>
-                  //
-                  // Hint: Check part.type.startsWith('tool-') to detect tool parts
+                  // Handle tool call parts
+                  if (part.type.startsWith('tool-')) {
+                    const toolPart = part as {
+                      type: string
+                      toolCallId?: string
+                      input?: unknown
+                      output?: unknown
+                      state?: string
+                      errorText?: string
+                      approval?: { id: string }
+                    }
+                    const toolName = toolPart.type.replace('tool-', '')
+
+                    // Handle plan tool (pre-approval step)
+                    if (toolName === 'plan') {
+                      const planInput = toolPart.input as { plan?: string } | undefined
+                      const planText = typeof planInput?.plan === 'string'
+                        ? planInput.plan
+                        : ''
+
+                      return (
+                        <div key={`plan-${i}`}>
+                          <Plan
+                            defaultOpen={true}
+                            isStreaming={
+                              isLoading &&
+                              message.id === messages[messages.length - 1]?.id
+                            }
+                          >
+                            <PlanHeader>
+                              <PlanTitle>Plan</PlanTitle>
+                              <PlanTrigger />
+                            </PlanHeader>
+                            <PlanContent>
+                              <MessageResponse>{planText}</MessageResponse>
+                            </PlanContent>
+                          </Plan>
+                        </div>
+                      )
+                    }
+
+                    // Handle web_search tool (componentes Tool + ToolSearchQuery + ToolSearchResults)
+                    if (toolName === 'web_search') {
+                      const searchInput = toolPart.input as { query?: string } | undefined
+                      const searchQuery = typeof searchInput?.query === 'string' ? searchInput.query : ''
+                      const searchOutput = toolPart.output as {
+                        query?: string
+                        results?: Array<{ title?: string; url?: string; content?: string }>
+                        error?: string
+                      } | undefined
+                      const results = searchOutput?.results ?? []
+                      const errorMsg =
+                        toolPart.errorText ||
+                        searchOutput?.error ||
+                        (toolPart.state === 'output-error' ? 'No se pudo completar la búsqueda.' : undefined)
+
+                      return (
+                        <Tool key={toolPart.toolCallId ?? `web_search-${i}`}>
+                          <ToolHeader
+                            type={toolPart.type as `tool-${string}`}
+                            state={(toolPart.state ?? 'input-available') as 'input-streaming' | 'input-available' | 'output-available' | 'output-error'}
+                            title="Buscando en la web..."
+                          />
+                          <ToolContent>
+                            {searchQuery && <ToolSearchQuery query={searchQuery} />}
+                            {(toolPart.state === 'output-available' || toolPart.state === 'output-error') && (
+                              <ToolSearchResults
+                                results={results}
+                                error={errorMsg}
+                              />
+                            )}
+                          </ToolContent>
+                        </Tool>
+                      )
+                    }
+
+                    // Handle other tools generically
+                    return (
+                      <Tool key={toolPart.toolCallId ?? `tool-${i}`}>
+                        <ToolHeader
+                          type={toolPart.type as `tool-${string}`}
+                          state={(toolPart.state ?? 'input-available') as 'input-streaming' | 'input-available' | 'output-available' | 'output-error'}
+                          title={`Ejecutando ${toolName}...`}
+                        />
+                        <ToolContent>
+                          <ToolInput input={toolPart.input} />
+                          {(toolPart.state === 'output-available' || toolPart.state === 'output-error') && (
+                            <ToolOutput output={toolPart.output} errorText={toolPart.errorText} />
+                          )}
+                        </ToolContent>
+                      </Tool>
+                    )
+                  }
+
                   return null
                 })}
 

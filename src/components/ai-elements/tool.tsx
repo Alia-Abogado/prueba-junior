@@ -15,6 +15,7 @@ import {
   ChevronDownIcon,
   CircleIcon,
   ClockIcon,
+  ExternalLinkIcon,
   WrenchIcon,
   XCircleIcon,
 } from "lucide-react";
@@ -37,22 +38,22 @@ export type ToolHeaderProps = {
   title?: string;
   className?: string;
 } & (
-  | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
-  | {
+    | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
+    | {
       type: DynamicToolUIPart["type"];
       state: DynamicToolUIPart["state"];
       toolName: string;
     }
-);
+  );
 
 export const getStatusBadge = (status: ToolPart["state"]) => {
   const labels: Record<ToolPart["state"], string> = {
-    "approval-requested": "Awaiting Approval",
-    "approval-responded": "Responded",
-    "input-available": "Running",
-    "input-streaming": "Pending",
-    "output-available": "Completed",
-    "output-denied": "Denied",
+    "approval-requested": "En espera de aprobación",
+    "approval-responded": "Respondido",
+    "input-available": "En ejecución",
+    "input-streaming": "Pendiente",
+    "output-available": "Completado",
+    "output-denied": "Denegado",
     "output-error": "Error",
   };
 
@@ -83,12 +84,16 @@ export const ToolHeader = ({
   ...props
 }: ToolHeaderProps) => {
   const derivedName =
-    type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
+    type === "dynamic-tool"
+      ? toolName
+      : typeof type === "string"
+        ? type.split("-").slice(1).join("-")
+        : toolName ?? "tool";
 
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex w-full items-center justify-between gap-4 p-3",
+        "flex w-full items-center justify-between gap-4 p-3 cursor-pointer",
         className
       )}
       {...props}
@@ -171,6 +176,98 @@ export const ToolOutput = ({
         {errorText && <div>{errorText}</div>}
         {Output}
       </div>
+    </div>
+  );
+};
+
+export type ToolSearchQueryProps = ComponentProps<"div"> & {
+  query: string;
+};
+
+export const ToolSearchQuery = ({
+  className,
+  query,
+  ...props
+}: ToolSearchQueryProps) => (
+  <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
+    <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+      Búsqueda
+    </h4>
+    <p className="rounded-md bg-muted/50 px-3 py-2 text-sm">{query}</p>
+  </div>
+);
+
+export type ToolSearchResultItem = {
+  title?: string;
+  url?: string;
+  content?: string;
+};
+
+export type ToolSearchResultsProps = Omit<ComponentProps<"div">, "results"> & {
+  results: ToolSearchResultItem[];
+  error?: string;
+};
+
+export const ToolSearchResults = ({
+  className,
+  results,
+  error,
+  ...props
+}: ToolSearchResultsProps) => {
+  if (error) {
+    return (
+      <div className={cn("space-y-2", className)} {...props}>
+        <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+          Error
+        </h4>
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-destructive text-sm">
+          {error}
+        </div>
+      </div>
+    );
+  }
+  if (results.length === 0) {
+    return (
+      <div className={cn("space-y-2", className)} {...props}>
+        <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+          Resultados encontrados
+        </h4>
+        <p className="rounded-md bg-muted/50 px-3 py-2 text-muted-foreground text-sm">
+          No se encontraron resultados.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className={cn("space-y-2", className)} {...props}>
+      <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+        Resultados encontrados
+      </h4>
+      <ul className="space-y-3">
+        {results.map((r, idx) => (
+          <li
+            key={idx}
+            className="rounded-md border bg-card p-3 text-card-foreground shadow-sm"
+          >
+            {(r.title || r.url) && (
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 font-medium text-sm text-primary hover:underline"
+              >
+                {r.title || r.url}
+                <ExternalLinkIcon className="size-3.5" />
+              </a>
+            )}
+            {r.content && (
+              <p className="mt-1.5 text-muted-foreground text-sm leading-snug line-clamp-3">
+                {r.content}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };

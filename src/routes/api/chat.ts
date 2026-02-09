@@ -1,16 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-// import { streamText, type UIMessage } from 'ai'
-// import { z } from 'zod'
-// import { SYSTEM_PROMPT } from '@/lib/prompts'
-
-// TODO: Install an AI provider. Pick ONE:
-//   npm install @ai-sdk/anthropic   (then set ANTHROPIC_API_KEY in .env)
-//   npm install @ai-sdk/openai      (then set OPENAI_API_KEY in .env)
-//
-// Then uncomment the provider import:
-//   import { anthropic } from '@ai-sdk/anthropic'
-//   import { openai } from '@ai-sdk/openai'
+import { streamText, stepCountIs } from 'ai'
+import { z } from 'zod'
+import { SYSTEM_PROMPT } from '@/lib/prompts'
+import { openai } from '@ai-sdk/openai'
+import { tavily } from '@tavily/core'
 
 export const Route = createFileRoute('/api/chat')({
   server: {
@@ -20,50 +13,67 @@ export const Route = createFileRoute('/api/chat')({
           messages: Array<unknown>
         }
 
-        // TODO: Implement the AI chat endpoint.
-        // Use streamText() from the 'ai' package with your chosen provider.
-        //
-        // Here's the structure you should implement:
-        //
-        // const result = streamText({
-        //   model: anthropic('claude-sonnet-4-20250514'),  // or openai('gpt-4o')
-        //   system: SYSTEM_PROMPT,
-        //   messages: messages as UIMessage[],
-        //   tools: {
-        //     plan: {
-        //       description: 'Create a step-by-step plan before taking action. This is a client-side tool that displays in the UI.',
-        //       parameters: z.object({
-        //         plan: z.string().describe('The step-by-step plan in markdown format'),
-        //       }),
-        //       // No execute function — this is a client-side tool that auto-resolves
-        //     },
-        //     web_search: {
-        //       description: 'Search the web for current legal information, laws, or regulations.',
-        //       parameters: z.object({
-        //         query: z.string().describe('The search query'),
-        //       }),
-        //       execute: async ({ query }) => {
-        //         // TODO: Implement web search using Tavily, Serper, or another search API
-        //         // For now, return empty results
-        //         return { query, results: [] }
-        //       },
-        //     },
-        //   },
-        //   maxSteps: 5,
-        // })
-        //
-        // IMPORTANT: Use toUIMessageStreamResponse() (NOT toDataStreamResponse())
-        // return result.toUIMessageStreamResponse()
+        const convertedMessages = (messages as any[]).map((msg: any) => ({
+          role: msg.role,
+          content: Array.isArray(msg.parts)
+            ? msg.parts
+              .filter((p: any) => p.type === 'text')
+              .map((p: any) => p.text)
+              .join('\n')
+            : msg.content || '',
+        }))
 
-        void messages
+        const result = streamText({
+          model: openai('gpt-4o-mini'),
+          system: SYSTEM_PROMPT,
+          messages: convertedMessages as any,
+          stopWhen: stepCountIs(5),
+          tools: {
+            plan: {
+              description: 'Create a step-by-step plan before taking action. This is a client-side tool that displays in the UI.',
+              inputSchema: z.object({
+                plan: z.string().describe('The step-by-step plan in markdown format'),
+              }),
+              execute: async () => ({ status: 'success' }),
+            },
+            web_search: {
+              description: 'Search the web for current legal information, laws, or regulations.',
+              inputSchema: z.object({
+                query: z.string().describe('The search query'),
+              }),
+              execute: async ({ query }) => {
+                const searchQuery = typeof query === 'string' ? query : String(query ?? '')
+                if (!searchQuery.trim()) {
+                  return { query: searchQuery, results: [], error: 'Query vacía' }
+                }
+                try {
+                  const apiKey = process.env.TAVILY_API_KEY
+                  if (!apiKey) {
+                    return { query: searchQuery, results: [], error: 'TAVILY_API_KEY no configurada' }
+                  }
+                  const tvly = tavily({ apiKey })
+                  const searchResult = await tvly.search(searchQuery, {
+                    searchDepth: 'basic',
+                    maxResults: 5,
+                  })
 
-        return json(
-          {
-            error:
-              'No AI provider configured. See src/routes/api/chat.ts for instructions.',
+                  return {
+                    query: searchQuery,
+                    results: (searchResult?.results ?? []).map((r: { title?: string; url?: string; content?: string }) => ({
+                      title: r.title ?? '',
+                      url: r.url ?? '',
+                      content: r.content ?? '',
+                    })),
+                  }
+                } catch (error) {
+                  console.error('Tavily search error:', error)
+                  return { query: searchQuery, results: [], error: 'Failed to search' }
+                }
+              },
+            },
           },
-          { status: 501 },
-        )
+        })
+        return result.toUIMessageStreamResponse()
       },
     },
   },

@@ -6,6 +6,9 @@ import Header from '../components/Header'
 
 import appCss from '../styles.css?url'
 
+import { NotFound } from '@/components/NotFound'
+import { ThemeProvider } from '@/providers/ThemeProvider'
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -29,6 +32,7 @@ export const Route = createRootRoute({
   }),
 
   shellComponent: RootDocument,
+  notFoundComponent: NotFound,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -38,8 +42,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <Header />
-        {children}
+        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+          <Header />
+          {children}
+        </ThemeProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',
