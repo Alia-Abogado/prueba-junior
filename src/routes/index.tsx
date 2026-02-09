@@ -147,7 +147,7 @@ function ChatPage() {
                         : ''
 
                       return (
-                        <div key={`plan-${i}`} className="space-y-3">
+                        <div key={`plan-${i}`}>
                           <Plan
                             defaultOpen={true}
                             isStreaming={

@@ -38,13 +38,13 @@ export type ToolHeaderProps = {
   title?: string;
   className?: string;
 } & (
-  | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
-  | {
+    | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
+    | {
       type: DynamicToolUIPart["type"];
       state: DynamicToolUIPart["state"];
       toolName: string;
     }
-);
+  );
 
 export const getStatusBadge = (status: ToolPart["state"]) => {
   const labels: Record<ToolPart["state"], string> = {
@@ -93,7 +93,7 @@ export const ToolHeader = ({
   return (
     <CollapsibleTrigger
       className={cn(
-        "flex w-full items-center justify-between gap-4 p-3",
+        "flex w-full items-center justify-between gap-4 p-3 cursor-pointer",
         className
       )}
       {...props}
