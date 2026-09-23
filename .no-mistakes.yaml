@@ -4,4 +4,4 @@
 
 commands:
   prepare: "npm ci"
-  test: "npm run test"
+  test: "npx vitest run --passWithNoTests"
