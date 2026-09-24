@@ -1,0 +1,7 @@
+# Per-repo no-mistakes gate configuration.
+# No lint script exists in package.json and no eslint/prettier config is
+# present, so commands.lint is intentionally omitted.
+
+commands:
+  prepare: "npm ci"
+  test: "npx vitest run --passWithNoTests"
